@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card card-pro p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-medical-fill text-primary me-2"></i>Emitir Nueva Ficha Clínica</h6>
+            <form id="formFicha">
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6"><label class="small fw-semibold">Paciente</label><select class="form-select" id="ficha_mascota" required></select></div>
+                    <div class="col-md-6"><label class="small fw-semibold">Veterinario Tratante</label><select class="form-select" id="ficha_veterinario" required></select></div>
+                </div>
+                <div class="mb-2"><label class="small fw-semibold">Cita Asociada (Opcional)</label><select class="form-select" id="ficha_cita"></select></div>
+                <div class="mb-2"><label class="small fw-semibold">Anamnesis / Síntomas</label><textarea class="form-control" id="ficha_anamnesis" rows="2" required></textarea></div>
+                <div class="mb-2"><label class="small fw-semibold">Diagnóstico Clínico</label><textarea class="form-control" id="ficha_diagnostico" rows="2" required></textarea></div>
+                <div class="mb-2"><label class="small fw-semibold">Tratamiento Indicado</label><textarea class="form-control" id="ficha_tratamiento" rows="2" required></textarea></div>
+                <div class="mb-2"><label class="small fw-semibold">Receta Médica</label><textarea class="form-control" id="ficha_receta" rows="2"></textarea></div>
+                <div class="mb-2"><label class="small fw-semibold">Exámenes Solicitados</label><textarea class="form-control" id="ficha_examenes" rows="2"></textarea></div>
+                <div class="form-check form-switch my-2">
+                    <input class="form-check-input" type="checkbox" id="ficha_auto_recordatorio">
+                    <label class="form-check-label small fw-bold text-primary" for="ficha_auto_recordatorio">Agendar recordatorio automático en 30 días</label>
+                </div>
+                <input type="text" class="form-control mb-3" id="ficha_nombre_control" placeholder="Detalle del próximo control o vacuna">
+                <button type="submit" class="btn btn-primary w-100 fw-bold">Registrar Ficha Clínica</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card card-pro p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">Historial Clínico Digital de Pacientes</h6>
+                <input type="text" id="buscarFicha" class="form-control form-control-sm w-50" placeholder="Filtrar por mascota o diagnóstico..." oninput="renderizarFichas()">
+            </div>
+            <div id="contenedorFichas" class="vstack gap-3"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let fichas = [];
+
+    async function cargarFichas() {
+        const [listaFichas, listaMascotas, listaVets, listaCitas] = await Promise.all([
+            apiFetch('/api/fichas/'), apiFetch('/api/mascotas/'), apiFetch('/api/veterinarios/'), apiFetch('/api/citas/')
+        ]);
+        fichas = listaFichas;
+        document.getElementById('ficha_mascota').innerHTML = listaMascotas.map(m => `<option value="${m.id}">${m.nombre} (Tutor: ${m.tutor_nombre})</option>`).join('');
+        document.getElementById('ficha_veterinario').innerHTML = listaVets.map(v => `<option value="${v.id}">Dr(a). ${v.nombre_completo}</option>`).join('');
+        document.getElementById('ficha_cita').innerHTML = `<option value="">Atención directa sin cita previa</option>` +
+            listaCitas.filter(c => c.estado === 'PROGRAMADA').map(c => `<option value="${c.id}">${c.fecha} ${c.bloque_horario} - ${c.mascota_nombre}</option>`).join('');
+
+        // Si viene redirigido desde el botón "Atender Ficha" del Calendario
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('mascota_id')) document.getElementById('ficha_mascota').value = params.get('mascota_id');
+        if (params.get('vet_id')) document.getElementById('ficha_veterinario').value = params.get('vet_id');
+        if (params.get('cita_id')) document.getElementById('ficha_cita').value = params.get('cita_id');
+
+        renderizarFichas();
+    }
+
+    function renderizarFichas() {
+        const q = document.getElementById('buscarFicha').value.toLowerCase();
+        const filtradas = fichas.filter(f => f.mascota_nombre.toLowerCase().includes(q) || f.diagnostico.toLowerCase().includes(q));
+        document.getElementById('contenedorFichas').innerHTML = filtradas.map(f => `
+            <div class="border rounded-3 p-3 bg-light shadow-sm">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0 text-primary">Ficha #${f.id} - ${f.mascota_nombre} <small class="text-muted">(Tutor: ${f.tutor_nombre})</small></h6>
+                    <div>
+                        <span class="badge bg-dark me-2">${f.fecha_formateada} | Dr(a). ${f.veterinario_nombre || 'N/A'}</span>
+                        <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="eliminarFicha(${f.id})"><i class="bi bi-trash"></i></button>
+                    </div>
+                </div>
+                <div class="row g-2 small">
+                    <div class="col-md-6"><strong>Anamnesis:</strong> ${f.anamnesis}</div>
+                    <div class="col-md-6"><strong>Diagnóstico:</strong> ${f.diagnostico}</div>
+                    <div class="col-md-12"><strong>Tratamiento:</strong> ${f.tratamiento}</div>
+                    ${f.receta_medica ? `<div class="col-md-6 text-success"><strong>Receta Médica:</strong> ${f.receta_medica}</div>` : ''}
+                    ${f.examenes_solicitados ? `<div class="col-md-6 text-primary"><strong>Exámenes:</strong> ${f.examenes_solicitados}</div>` : ''}
+                </div>
+            </div>`).join('');
+    }
+
+    document.getElementById('formFicha').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const citaVal = document.getElementById('ficha_cita').value;
+        try {
+            await apiFetch('/api/fichas/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    mascota: document.getElementById('ficha_mascota').value,
+                    veterinario: document.getElementById('ficha_veterinario').value,
+                    cita: citaVal ? citaVal : null,
+                    anamnesis: document.getElementById('ficha_anamnesis').value,
+                    diagnostico: document.getElementById('ficha_diagnostico').value,
+                    tratamiento: document.getElementById('ficha_tratamiento').value,
+                    receta_medica: document.getElementById('ficha_receta').value,
+                    examenes_solicitados: document.getElementById('ficha_examenes').value,
+                    requiere_vacuna_control: document.getElementById('ficha_auto_recordatorio').checked,
+                    nombre_control_futuro: document.getElementById('ficha_nombre_control').value
+                })
+            });
+            e.target.reset();
+            mostrarAlerta('Ficha clínica guardada exitosamente.');
+            cargarFichas();
+        } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
+    });
+
+    async function eliminarFicha(id) {
+        if (!confirm('¿Confirmas la eliminación de esta ficha clínica?')) return;
+        await apiFetch(`/api/fichas/${id}/`, { method: 'DELETE' });
+        mostrarAlerta('Ficha eliminada.', 'warning');
+        cargarFichas();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarFichas);
+</script>
+{% endblock %}

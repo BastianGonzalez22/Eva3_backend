@@ -1,0 +1,50 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}{{ title }} | PetCare Administración{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    #header {
+        background: #042f2e !important;
+        color: #ffffff !important;
+        border-bottom: 3px solid #0d9488;
+    }
+    #branding h1, #branding h1 a:link, #branding h1 a:visited {
+        color: #ffffff !important;
+        font-weight: 700;
+    }
+    div.breadcrumbs {
+        background: #0f766e !important;
+        color: #e2e8f0 !important;
+    }
+    .module h2, .module caption, .inline-group h2 {
+        background: #0f766e !important;
+        color: #ffffff !important;
+    }
+    .button, input[type=submit], input[type=button], .submit-row input, a.button {
+        background: #0d9488 !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    .button.default, input[type=submit].default {
+        background: #042f2e !important;
+    }
+</style>
+{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        PetCare | Administración Clínica Veterinaria
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}
+<div style="padding: 6px 16px;">
+    <a href="{% url 'inicio' %}" style="color: #5eead4; font-weight: bold; text-decoration: none;">
+        &larr; Volver a la Plataforma Web PetCare
+    </a>
+</div>
+{% endblock %}

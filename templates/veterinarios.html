@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card card-pro p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-person-badge-fill text-primary me-2"></i>Incorporar Profesional</h6>
+            <form id="formVeterinario">
+                <div class="mb-2"><label class="small fw-semibold">RUT Profesional</label><input type="text" id="vet_rut" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Nombre Completo</label><input type="text" id="vet_nombre" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Especialidad Médica</label><input type="text" id="vet_especialidad" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Correo Electrónico</label><input type="email" id="vet_email" class="form-control" required></div>
+                <div class="mb-3"><label class="small fw-semibold">Teléfono</label><input type="text" id="vet_telefono" class="form-control" required></div>
+                <button type="submit" class="btn btn-dark w-100 fw-semibold">Guardar Profesional</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card card-pro p-4">
+            <h6 class="fw-bold mb-3">Nómina de Médicos Veterinarios y Disponibilidad</h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>RUT</th><th>Profesional</th><th>Especialidad</th><th>Contacto</th><th>Estado en Agenda</th><th class="text-end">Acciones</th></tr>
+                    </thead>
+                    <tbody id="tablaVeterinarios"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function cargarVeterinarios() {
+        const vets = await apiFetch('/api/veterinarios/');
+        document.getElementById('tablaVeterinarios').innerHTML = vets.map(v => `
+            <tr>
+                <td>${v.rut}</td>
+                <td class="fw-bold">Dr(a). ${v.nombre_completo}</td>
+                <td><span class="badge bg-info text-dark">${v.especialidad}</span></td>
+                <td><small>${v.email}<br>${v.telefono}</small></td>
+                <td><span class="badge bg-${v.activo ? 'success' : 'danger'}">${v.activo ? 'Disponible' : 'Inactivo'}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-secondary me-1" onclick="toggleVet(${v.id}, ${!v.activo})" title="Cambiar Disponibilidad"><i class="bi bi-arrow-repeat"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarVet(${v.id})"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    document.getElementById('formVeterinario').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            await apiFetch('/api/veterinarios/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    rut: document.getElementById('vet_rut').value,
+                    nombre_completo: document.getElementById('vet_nombre').value,
+                    especialidad: document.getElementById('vet_especialidad').value,
+                    email: document.getElementById('vet_email').value,
+                    telefono: document.getElementById('vet_telefono').value,
+                    activo: true
+                })
+            });
+            e.target.reset();
+            mostrarAlerta('Profesional incorporado.');
+            cargarVeterinarios();
+        } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
+    });
+
+    async function toggleVet(id, activo) {
+        await apiFetch(`/api/veterinarios/${id}/`, { method: 'PATCH', body: JSON.stringify({ activo }) });
+        mostrarAlerta('Disponibilidad actualizada.');
+        cargarVeterinarios();
+    }
+
+    async function eliminarVet(id) {
+        if (!confirm('¿Confirmas la eliminación de este profesional?')) return;
+        await apiFetch(`/api/veterinarios/${id}/`, { method: 'DELETE' });
+        mostrarAlerta('Profesional eliminado.', 'warning');
+        cargarVeterinarios();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarVeterinarios);
+</script>
+{% endblock %}

@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card card-pro p-4">
+    <div class="row g-3 align-items-center justify-content-between mb-4">
+        <div class="col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
+                <input type="text" id="buscarTutor" class="form-control" placeholder="Buscar tutor por RUT, nombre o correo..." oninput="renderizarTutores()">
+            </div>
+        </div>
+        {% if perms.clinica.add_tutor %}
+        <div class="col-md-auto">
+            <button class="btn btn-success fw-semibold" onclick="abrirModalTutor()">
+                <i class="bi bi-person-plus-fill me-1"></i> Nuevo Tutor
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr><th>RUT</th><th>Nombre Completo</th><th>Teléfono</th><th>Correo Electrónico</th><th>Dirección</th><th>Mascotas</th><th class="text-end">Acciones</th></tr>
+            </thead>
+            <tbody id="tablaTutores"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="modalTutor" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content" id="formTutorModal">
+            <div class="modal-header bg-dark text-white">
+                <h6 class="modal-title fw-bold" id="tituloModalTutor">Registrar Tutor</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="tutor_id">
+                <div class="mb-2">
+                    <label class="small fw-semibold">RUT Chileno (Validador Módulo 11)</label>
+                    <input type="text" id="tutor_rut" class="form-control" placeholder="Ej: 11111111-1 o 18967143-0" required>
+                    <div class="form-text small">Ejemplos válidos: <code>11111111-1</code>, <code>22222222-2</code>, <code>18967143-0</code></div>
+                </div>
+                <div class="mb-2"><label class="small fw-semibold">Nombre Completo</label><input type="text" id="tutor_nombre" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Teléfono</label><input type="text" id="tutor_telefono" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Correo Electrónico</label><input type="email" id="tutor_email" class="form-control" required></div>
+                <div class="mb-2"><label class="small fw-semibold">Dirección</label><input type="text" id="tutor_direccion" class="form-control" required></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success btn-sm fw-bold">Guardar Tutor</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const PUEDE_EDITAR = {{ perms.clinica.change_tutor|yesno:"true,false" }};
+    const PUEDE_BORRAR = {{ perms.clinica.delete_tutor|yesno:"true,false" }};
+    let tutores = [];
+    const modalTutorBS = new bootstrap.Modal(document.getElementById('modalTutor'));
+
+    async function cargarTutores() {
+        tutores = await apiFetch('/api/tutores/');
+        renderizarTutores();
+    }
+
+    function renderizarTutores() {
+        const q = document.getElementById('buscarTutor').value.toLowerCase();
+        const filtrados = tutores.filter(t => t.nombre_completo.toLowerCase().includes(q) || t.rut.toLowerCase().includes(q) || t.email.toLowerCase().includes(q));
+        document.getElementById('tablaTutores').innerHTML = filtrados.map(t => `
+            <tr>
+                <td class="fw-semibold">${t.rut}</td>
+                <td class="fw-bold">${t.nombre_completo}</td>
+                <td>${t.telefono}</td>
+                <td>${t.email}</td>
+                <td>${t.direccion}</td>
+                <td><span class="badge bg-info-subtle text-dark">${t.total_mascotas} paciente(s)</span></td>
+                <td class="text-end">
+                    ${PUEDE_EDITAR ? `<button class="btn btn-sm btn-outline-primary me-1" onclick="editarTutor(${t.id})"><i class="bi bi-pencil-square"></i></button>` : ''}
+                    ${PUEDE_BORRAR ? `<button class="btn btn-sm btn-outline-danger" onclick="eliminarTutor(${t.id})"><i class="bi bi-trash"></i></button>` : ''}
+                </td>
+            </tr>`).join('');
+    }
+
+    function abrirModalTutor() {
+        document.getElementById('formTutorModal').reset();
+        document.getElementById('tutor_id').value = '';
+        document.getElementById('tituloModalTutor').innerText = 'Registrar Nuevo Tutor';
+        modalTutorBS.show();
+    }
+
+    function editarTutor(id) {
+        const t = tutores.find(x => x.id === id);
+        if (!t) return;
+        document.getElementById('tutor_id').value = t.id;
+        document.getElementById('tutor_rut').value = t.rut;
+        document.getElementById('tutor_nombre').value = t.nombre_completo;
+        document.getElementById('tutor_telefono').value = t.telefono;
+        document.getElementById('tutor_email').value = t.email;
+        document.getElementById('tutor_direccion').value = t.direccion;
+        document.getElementById('tituloModalTutor').innerText = 'Editar Tutor: ' + t.nombre_completo;
+        modalTutorBS.show();
+    }
+
+    document.getElementById('formTutorModal').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('tutor_id').value;
+        const payload = {
+            rut: document.getElementById('tutor_rut').value,
+            nombre_completo: document.getElementById('tutor_nombre').value,
+            telefono: document.getElementById('tutor_telefono').value,
+            email: document.getElementById('tutor_email').value,
+            direccion: document.getElementById('tutor_direccion').value
+        };
+        try {
+            if (id) {
+                await apiFetch(`/api/tutores/${id}/`, { method: 'PUT', body: JSON.stringify(payload) });
+                mostrarAlerta('Tutor actualizado correctamente.');
+            } else {
+                await apiFetch('/api/tutores/', { method: 'POST', body: JSON.stringify(payload) });
+                mostrarAlerta('Tutor registrado exitosamente.');
+            }
+            modalTutorBS.hide();
+            cargarTutores();
+        } catch (err) { mostrarAlerta('Error de Validación: ' + err.message, 'danger'); }
+    });
+
+    async function eliminarTutor(id) {
+        if (!confirm('¿Confirmas la eliminación de este tutor?')) return;
+        await apiFetch(`/api/tutores/${id}/`, { method: 'DELETE' });
+        mostrarAlerta('Tutor eliminado.', 'warning');
+        cargarTutores();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarTutores);
+</script>
+{% endblock %}

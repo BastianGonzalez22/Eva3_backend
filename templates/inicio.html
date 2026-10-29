@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <a href="{% url 'tutores' %}" class="card kpi-box p-3 border-start border-5 border-primary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div><span class="text-muted small fw-bold">TUTORES REGISTRADOS</span><h2 class="fw-bold mb-0 mt-1" id="kpiTutores">0</h2></div>
+                <i class="bi bi-people-fill fs-1 text-primary opacity-75"></i>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'mascotas' %}" class="card kpi-box p-3 border-start border-5 border-success">
+            <div class="d-flex justify-content-between align-items-center">
+                <div><span class="text-muted small fw-bold">MASCOTAS ACTIVAS</span><h2 class="fw-bold mb-0 mt-1" id="kpiMascotas">0</h2></div>
+                <i class="bi bi-hearts fs-1 text-success opacity-75"></i>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'agenda' %}" class="card kpi-box p-3 border-start border-5 border-info">
+            <div class="d-flex justify-content-between align-items-center">
+                <div><span class="text-muted small fw-bold">CITAS PROGRAMADAS</span><h2 class="fw-bold mb-0 mt-1" id="kpiCitas">0</h2></div>
+                <i class="bi bi-calendar2-check-fill fs-1 text-info opacity-75"></i>
+            </div>
+        </a>
+    </div>
+    <div class="col-md-3">
+        <a href="{% url 'recordatorios' %}" class="card kpi-box p-3 border-start border-5 border-danger">
+            <div class="d-flex justify-content-between align-items-center">
+                <div><span class="text-muted small fw-bold">ALERTAS PREVENTIVAS</span><h2 class="fw-bold mb-0 mt-1" id="kpiRecordatorios">0</h2></div>
+                <i class="bi bi-bell-fill fs-1 text-danger opacity-75"></i>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="card card-pro p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar-event text-primary me-2"></i>Próximas Citas Médicas en Agenda</h6>
+                <a href="{% url 'agenda' %}" class="btn btn-sm btn-outline-primary">Ir al Calendario</a>
+            </div>
+            <table class="table table-sm align-middle">
+                <thead class="table-light"><tr><th>Fecha / Bloque</th><th>Paciente</th><th>Veterinario</th><th>Estado</th></tr></thead>
+                <tbody id="resumenCitas"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card card-pro p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-exclamation-octagon-fill text-danger me-2"></i>Vacunas y Controles Pendientes</h6>
+                <a href="{% url 'recordatorios' %}" class="btn btn-sm btn-outline-danger">Gestionar</a>
+            </div>
+            <div id="resumenAlertas" class="vstack gap-2"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function cargarInicio() {
+        const [tutores, mascotas, citas, recordatorios] = await Promise.all([
+            apiFetch('/api/tutores/'), apiFetch('/api/mascotas/'), apiFetch('/api/citas/'), apiFetch('/api/recordatorios/')
+        ]);
+        document.getElementById('kpiTutores').innerText = tutores.length;
+        document.getElementById('kpiMascotas').innerText = mascotas.length;
+        document.getElementById('kpiCitas').innerText = citas.filter(c => c.estado === 'PROGRAMADA').length;
+        document.getElementById('kpiRecordatorios').innerText = recordatorios.filter(r => r.estado !== 'REALIZADO').length;
+
+        const prox = citas.filter(c => c.estado === 'PROGRAMADA').slice(0, 6);
+        document.getElementById('resumenCitas').innerHTML = prox.length ? prox.map(c => `
+            <tr>
+                <td><strong>${c.fecha}</strong> <span class="badge bg-dark">${c.bloque_horario}</span></td>
+                <td>${c.mascota_nombre}</td>
+                <td>Dr(a). ${c.veterinario_nombre}</td>
+                <td><span class="badge bg-primary">${c.estado}</span></td>
+            </tr>`).join('') : `<tr><td colspan="4" class="text-center text-muted py-3">No hay citas programadas pendientes.</td></tr>`;
+
+        const alertas = recordatorios.filter(r => r.estado !== 'REALIZADO').slice(0, 5);
+        document.getElementById('resumenAlertas').innerHTML = alertas.length ? alertas.map(r => `
+            <div class="p-2 border rounded d-flex justify-content-between align-items-center bg-light">
+                <div>
+                    <strong class="small">${r.mascota_nombre}</strong> - <span class="small">${r.descripcion}</span><br>
+                    <small class="text-muted">Fecha: ${r.fecha_programada} | Tutor: ${r.tutor_nombre}</small>
+                </div>
+                <span class="badge bg-${r.nivel_alerta === 'ATRASADO' ? 'danger' : 'warning text-dark'}">${r.nivel_alerta}</span>
+            </div>`).join('') : `<div class="text-center text-muted small py-3">Sin alertas preventivas pendientes.</div>`;
+    }
+    document.addEventListener('DOMContentLoaded', cargarInicio);
+</script>
+{% endblock %}

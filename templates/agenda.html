@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="card card-pro p-4 mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            <label class="form-label small fw-bold text-uppercase text-muted mb-1">1. Seleccionar Profesional Veterinario</label>
+            <select class="form-select fw-semibold" id="cal_veterinario" onchange="actualizarCalendarioDinamico()"></select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label small fw-bold text-uppercase text-muted mb-1">2. Fecha de Consulta</label>
+            <div class="input-group">
+                <button class="btn btn-outline-secondary" type="button" onclick="cambiarDiaCalendario(-1)"><i class="bi bi-chevron-left"></i></button>
+                <input type="date" class="form-control fw-semibold text-center" id="cal_fecha" onchange="actualizarCalendarioDinamico()">
+                <button class="btn btn-outline-secondary" type="button" onclick="cambiarDiaCalendario(1)"><i class="bi bi-chevron-right"></i></button>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div id="resumenDisponibilidadDia" class="p-2 rounded-3 bg-light border text-center fw-semibold small">Cargando disponibilidad...</div>
+        </div>
+        <div class="col-md-2 text-end">
+            <button class="btn btn-success w-100 fw-bold" onclick="abrirModalCitaRapida('09:00')"><i class="bi bi-calendar-plus me-1"></i> Nueva Cita</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tablero de Bloques Horarios -->
+<div class="card card-pro p-4 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-success me-2"></i>Tablero Dinámico de Disponibilidad Horaria por Profesional</h6>
+            <small class="text-muted">Haz clic en un bloque <span class="badge bg-success">DISPONIBLE</span> para reservar la hora.</small>
+        </div>
+        <div class="d-flex gap-2">
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-2">Libre</span>
+            <span class="badge bg-primary-subtle text-primary border border-primary px-3 py-2">Reservado</span>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary px-3 py-2">Completada</span>
+        </div>
+    </div>
+    <div id="grillaBloquesHorarios" class="row g-3"></div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card card-pro p-4 h-100">
+            <h6 class="fw-bold mb-3"><i class="bi bi-calendar-range text-primary me-2"></i>Ocupación de la Semana (7 Días)</h6>
+            <div id="grillaSemanal" class="vstack gap-2"></div>
+        </div>
+    </div>
+    <div class="col-lg-7">
+        <div class="card card-pro p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0">Listado General de Citas</h6>
+                <select id="filtroEstadoCita" class="form-select form-select-sm w-auto" onchange="renderizarCitas()">
+                    <option value="">Todos los Estados</option>
+                    <option value="PROGRAMADA">Programadas</option>
+                    <option value="COMPLETADA">Completadas</option>
+                    <option value="CANCELADA">Canceladas</option>
+                </select>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>Fecha y Bloque</th><th>Mascota / Tutor</th><th>Veterinario</th><th>Motivo</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+                    </thead>
+                    <tbody id="tablaCitas"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Agendar Cita -->
+<div class="modal fade" id="modalCita" tabindex="-1">
+    <div class="modal-dialog">
+        <form class="modal-content" id="formCita">
+            <div class="modal-header bg-success text-white">
+                <h6 class="modal-title fw-bold">Confirmar Reserva de Bloque Horario</h6>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-2"><label class="small fw-semibold">Médico Veterinario</label><select class="form-select" id="cita_veterinario" onchange="consultarDisponibilidad()" required></select></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-6"><label class="small fw-semibold">Fecha</label><input type="date" class="form-control" id="cita_fecha" onchange="consultarDisponibilidad()" required></div>
+                    <div class="col-6"><label class="small fw-semibold">Bloque Horario</label><select class="form-select" id="cita_bloque" required></select></div>
+                </div>
+                <div id="infoDisponibilidad" class="small fw-semibold text-success mb-2"></div>
+                <div class="mb-2"><label class="small fw-semibold">Paciente (Mascota)</label><select class="form-select" id="cita_mascota" required></select></div>
+                <div class="mb-2"><label class="small fw-semibold">Motivo de la Consulta</label><input type="text" class="form-control" id="cita_motivo" required></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-success btn-sm fw-bold">Confirmar Agendamiento</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let citas = [];
+    const modalCitaBS = new bootstrap.Modal(document.getElementById('modalCita'));
+
+    async function cargarAgenda() {
+        const [listaCitas, listaMascotas, listaVets] = await Promise.all([
+            apiFetch('/api/citas/'), apiFetch('/api/mascotas/'), apiFetch('/api/veterinarios/')
+        ]);
+        citas = listaCitas;
+        const opMascotas = listaMascotas.map(m => `<option value="${m.id}">${m.nombre} (Tutor: ${m.tutor_nombre})</option>`).join('');
+        const opVets = listaVets.filter(v => v.activo).map(v => `<option value="${v.id}">Dr(a). ${v.nombre_completo} - ${v.especialidad}</option>`).join('');
+
+        document.getElementById('cita_mascota').innerHTML = opMascotas;
+        document.getElementById('cita_veterinario').innerHTML = opVets;
+        document.getElementById('cal_veterinario').innerHTML = opVets;
+
+        if (!document.getElementById('cal_fecha').value) {
+            document.getElementById('cal_fecha').value = new Date().toISOString().split('T')[0];
+        }
+        renderizarCitas();
+        await actualizarCalendarioDinamico();
+    }
+
+    function cambiarDiaCalendario(dias) {
+        const input = document.getElementById('cal_fecha');
+        const d = input.value ? new Date(input.value + 'T12:00:00') : new Date();
+        d.setDate(d.getDate() + dias);
+        input.value = d.toISOString().split('T')[0];
+        actualizarCalendarioDinamico();
+    }
+
+    async function abrirModalCitaRapida(bloque) {
+        document.getElementById('cita_veterinario').value = document.getElementById('cal_veterinario').value;
+        document.getElementById('cita_fecha').value = document.getElementById('cal_fecha').value;
+        await consultarDisponibilidad();
+        if (bloque) document.getElementById('cita_bloque').value = bloque;
+        modalCitaBS.show();
+    }
+
+    async function consultarDisponibilidad() {
+        const vetId = document.getElementById('cita_veterinario').value;
+        const fecha = document.getElementById('cita_fecha').value;
+        if (!vetId || !fecha) return;
+        const bloques = await apiFetch(`/api/citas/disponibilidad/?veterinario_id=${vetId}&fecha=${fecha}`);
+        document.getElementById('cita_bloque').innerHTML = bloques.map(b => `<option value="${b.codigo}" ${!b.disponible ? 'disabled' : ''}>${b.etiqueta} ${b.disponible ? '(Disponible)' : '(OCUPADO)'}</option>`).join('');
+        document.getElementById('infoDisponibilidad').innerText = `${bloques.filter(b => b.disponible).length} bloques libres el ${fecha}.`;
+    }
+
+    async function actualizarCalendarioDinamico() {
+        const vetId = document.getElementById('cal_veterinario').value;
+        const fecha = document.getElementById('cal_fecha').value;
+        const contenedor = document.getElementById('grillaBloquesHorarios');
+        if (!vetId || !fecha) {
+            contenedor.innerHTML = `<div class="col-12 text-center text-muted py-4">Registra un Médico Veterinario activo para ver su calendario.</div>`;
+            return;
+        }
+        const bloques = await apiFetch(`/api/citas/disponibilidad/?veterinario_id=${vetId}&fecha=${fecha}`);
+        const citasDelDia = citas.filter(c => String(c.veterinario) === String(vetId) && c.fecha === fecha && c.estado !== 'CANCELADA');
+        const libres = bloques.filter(b => b.disponible).length;
+
+        document.getElementById('resumenDisponibilidadDia').innerHTML = libres > 0
+            ? `<span class="text-success"><i class="bi bi-check-circle-fill me-1"></i>${libres} de ${bloques.length} bloques libres</span>`
+            : `<span class="text-danger">Agenda Completa</span>`;
+
+        contenedor.innerHTML = bloques.map(b => {
+            const c = citasDelDia.find(x => x.bloque_horario === b.codigo);
+            if (!c) {
+                return `
+                <div class="col-md-3 col-sm-6">
+                    <div class="border border-2 border-success border-opacity-50 rounded-3 p-3 h-100 bg-success-subtle bg-opacity-10 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-dark"><i class="bi bi-clock me-1"></i>${b.etiqueta}</span>
+                                <span class="badge bg-success">DISPONIBLE</span>
+                            </div>
+                            <p class="small text-muted mb-3">Horario habilitado para reserva.</p>
+                        </div>
+                        <button class="btn btn-sm btn-success w-100 fw-semibold" onclick="abrirModalCitaRapida('${b.codigo}')">Agendar Bloque</button>
+                    </div>
+                </div>`;
+            } else {
+                const comp = c.estado === 'COMPLETADA';
+                const col = comp ? 'secondary' : 'primary';
+                return `
+                <div class="col-md-3 col-sm-6">
+                    <div class="border border-2 border-${col} rounded-3 p-3 h-100 bg-white shadow-sm d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-${col}"><i class="bi bi-clock-fill me-1"></i>${b.etiqueta}</span>
+                                <span class="badge bg-${col}">${c.estado}</span>
+                            </div>
+                            <div class="fw-bold">${c.mascota_nombre}</div>
+                            <div class="small text-muted mb-1">Tutor: ${c.tutor_nombre}</div>
+                            <div class="small bg-light p-1 rounded border mb-2"><strong>Motivo:</strong> ${c.motivo}</div>
+                        </div>
+                        <div class="d-flex gap-1 mt-2">
+                            ${!comp ? `
+                            <a href="/fichas/?cita_id=${c.id}&mascota_id=${c.mascota}&vet_id=${c.veterinario}" class="btn btn-sm btn-primary flex-grow-1">Atender Ficha</a>
+                            <button class="btn btn-sm btn-outline-danger" onclick="cambiarEstadoCita(${c.id}, 'CANCELADA')"><i class="bi bi-x-lg"></i></button>
+                            ` : `<span class="badge bg-success-subtle text-success w-100 py-2">Atención Finalizada</span>`}
+                        </div>
+                    </div>
+                </div>`;
+            }
+        }).join('');
+
+        // Vista Semanal 7 días
+        const baseDate = new Date(fecha + 'T12:00:00');
+        let htmlSem = '';
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(baseDate);
+            d.setDate(baseDate.getDate() + i);
+            const iso = d.toISOString().split('T')[0];
+            const nom = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' });
+            const ocup = citas.filter(c => String(c.veterinario) === String(vetId) && c.fecha === iso && c.estado !== 'CANCELADA').length;
+            const pct = Math.round((ocup / 7) * 100);
+            htmlSem += `
+            <div class="p-2 border rounded-3 bg-light d-flex justify-content-between align-items-center" style="cursor:pointer;" onclick="document.getElementById('cal_fecha').value='${iso}'; actualizarCalendarioDinamico();">
+                <div><strong class="text-capitalize small">${nom}</strong><div class="text-muted" style="font-size:0.75rem;">${ocup} reservadas / ${7 - ocup} libres</div></div>
+                <div class="w-50"><div class="progress" style="height: 8px;"><div class="progress-bar bg-${ocup >= 7 ? 'danger' : (ocup >= 4 ? 'warning' : 'success')}" style="width: ${pct}%"></div></div></div>
+                <span class="badge bg-${iso === fecha ? 'dark' : 'secondary'}">${iso === fecha ? 'Activo' : 'Ver'}</span>
+            </div>`;
+        }
+        document.getElementById('grillaSemanal').innerHTML = htmlSem;
+    }
+
+    function renderizarCitas() {
+        const est = document.getElementById('filtroEstadoCita').value;
+        const filtradas = citas.filter(c => !est || c.estado === est);
+        document.getElementById('tablaCitas').innerHTML = filtradas.map(c => {
+            const badge = c.estado === 'PROGRAMADA' ? 'primary' : (c.estado === 'COMPLETADA' ? 'success' : 'secondary');
+            return `
+            <tr>
+                <td class="fw-bold">${c.fecha} <span class="badge bg-dark">${c.bloque_horario}</span></td>
+                <td><strong>${c.mascota_nombre}</strong><br><small class="text-muted">${c.tutor_nombre}</small></td>
+                <td>Dr(a). ${c.veterinario_nombre}</td>
+                <td>${c.motivo}</td>
+                <td><span class="badge bg-${badge}">${c.estado}</span></td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarCita(${c.id})"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`;
+        }).join('');
+    }
+
+    document.getElementById('formCita').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            await apiFetch('/api/citas/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    mascota: document.getElementById('cita_mascota').value,
+                    veterinario: document.getElementById('cita_veterinario').value,
+                    fecha: document.getElementById('cita_fecha').value,
+                    bloque_horario: document.getElementById('cita_bloque').value,
+                    motivo: document.getElementById('cita_motivo').value,
+                    estado: 'PROGRAMADA'
+                })
+            });
+            modalCitaBS.hide();
+            document.getElementById('cita_motivo').value = '';
+            mostrarAlerta('Cita agendada exitosamente.');
+            cargarAgenda();
+        } catch (err) { mostrarAlerta('Conflicto de Horario: ' + err.message, 'danger'); }
+    });
+
+    async function cambiarEstadoCita(id, estado) {
+        await apiFetch(`/api/citas/${id}/`, { method: 'PATCH', body: JSON.stringify({ estado }) });
+        mostrarAlerta('Estado de cita actualizado.');
+        cargarAgenda();
+    }
+
+    async function eliminarCita(id) {
+        if (!confirm('¿Confirmas la eliminación de esta cita?')) return;
+        await apiFetch(`/api/citas/${id}/`, { method: 'DELETE' });
+        mostrarAlerta('Cita eliminada.', 'warning');
+        cargarAgenda();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarAgenda);
+</script>
+{% endblock %}

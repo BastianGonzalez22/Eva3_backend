@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card card-pro p-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-eyedropper text-warning me-2"></i>Programar Vacuna o Control</h6>
+            <form id="formRecordatorio">
+                <div class="mb-2"><label class="small fw-semibold">Paciente (Mascota)</label><select class="form-select" id="rec_mascota" required></select></div>
+                <div class="mb-2">
+                    <label class="small fw-semibold">Categoría Preventiva</label>
+                    <select class="form-select" id="rec_tipo">
+                        <option value="VACUNA">Vacunación</option>
+                        <option value="DESPARASITACION">Desparasitación</option>
+                        <option value="CONTROL">Control Médico Periódico</option>
+                    </select>
+                </div>
+                <div class="mb-2"><label class="small fw-semibold">Vacuna o Control</label><input type="text" class="form-control" id="rec_descripcion" required></div>
+                <div class="mb-3"><label class="small fw-semibold">Fecha Programada</label><input type="date" class="form-control" id="rec_fecha" required></div>
+                <button type="submit" class="btn btn-warning w-100 fw-bold">Programar Recordatorio</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card card-pro p-4">
+            <h6 class="fw-bold mb-3">Semáforo de Esquemas de Vacunación y Seguimiento</h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr><th>Fecha Límite</th><th>Semáforo</th><th>Mascota / Tutor</th><th>Prestación Preventiva</th><th>Estado</th><th class="text-end">Acciones</th></tr>
+                    </thead>
+                    <tbody id="tablaRecordatorios"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function cargarRecordatorios() {
+        const [recordatorios, mascotas] = await Promise.all([apiFetch('/api/recordatorios/'), apiFetch('/api/mascotas/')]);
+        document.getElementById('rec_mascota').innerHTML = mascotas.map(m => `<option value="${m.id}">${m.nombre} (Tutor: ${m.tutor_nombre})</option>`).join('');
+
+        const colores = { 'ATRASADO': 'danger', 'PROXIMO': 'warning text-dark', 'AL_DIA': 'info text-dark', 'COMPLETADO': 'success' };
+        document.getElementById('tablaRecordatorios').innerHTML = recordatorios.map(r => `
+            <tr>
+                <td class="fw-bold">${r.fecha_programada}</td>
+                <td><span class="badge bg-${colores[r.nivel_alerta]}">${r.nivel_alerta}</span></td>
+                <td><strong>${r.mascota_nombre}</strong><br><small class="text-muted">${r.tutor_nombre} (${r.tutor_telefono})</small></td>
+                <td><span class="badge bg-secondary">${r.tipo_display}</span> ${r.descripcion}</td>
+                <td><span class="badge bg-dark">${r.estado}</span></td>
+                <td class="text-end">
+                    ${r.estado !== 'REALIZADO' ? `
+                    <button class="btn btn-sm btn-info text-white me-1" onclick="estadoRec(${r.id}, 'NOTIFICADO')" title="Marcar Notificado"><i class="bi bi-envelope-check"></i></button>
+                    <button class="btn btn-sm btn-success me-1" onclick="estadoRec(${r.id}, 'REALIZADO')" title="Marcar Realizado"><i class="bi bi-check2-circle"></i></button>
+                    ` : ''}
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarRec(${r.id})"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>`).join('');
+    }
+
+    document.getElementById('formRecordatorio').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        try {
+            await apiFetch('/api/recordatorios/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    mascota: document.getElementById('rec_mascota').value,
+                    tipo: document.getElementById('rec_tipo').value,
+                    descripcion: document.getElementById('rec_descripcion').value,
+                    fecha_programada: document.getElementById('rec_fecha').value,
+                    estado: 'PENDIENTE'
+                })
+            });
+            e.target.reset();
+            mostrarAlerta('Recordatorio programado.');
+            cargarRecordatorios();
+        } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
+    });
+
+    async function estadoRec(id, estado) {
+        await apiFetch(`/api/recordatorios/${id}/`, { method: 'PATCH', body: JSON.stringify({ estado }) });
+        mostrarAlerta('Estado actualizado.');
+        cargarRecordatorios();
+    }
+
+    async function eliminarRec(id) {
+        if (!confirm('¿Confirmas la eliminación de este recordatorio?')) return;
+        await apiFetch(`/api/recordatorios/${id}/`, { method: 'DELETE' });
+        mostrarAlerta('Recordatorio eliminado.', 'warning');
+        cargarRecordatorios();
+    }
+
+    document.addEventListener('DOMContentLoaded', cargarRecordatorios);
+</script>
+{% endblock %}
