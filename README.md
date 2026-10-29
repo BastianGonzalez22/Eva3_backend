@@ -41,8 +41,31 @@ El registro público se encuentra deshabilitado por seguridad. Los accesos se co
 ---
 
 ## Instrucciones de Ejecución Local con PostgreSQL
+
 1. Clonar el repositorio y crear el entorno virtual:
    ```bash
    python -m venv venv
    .\venv\Scripts\activate
    pip install -r requirements.txt
+   ```
+
+2. Copiar `.env.example` como `.env` y completar las credenciales de PostgreSQL
+   (crear antes la base de datos `petcare_db`).
+
+3. Aplicar migraciones, crear roles y cargar datos de demostración:
+   ```bash
+   python manage.py migrate
+   python manage.py crear_roles
+   python manage.py cargar_demo
+   ```
+
+4. Levantar el servidor y abrir `http://127.0.0.1:8000/`:
+   ```bash
+   python manage.py runserver
+   ```
+
+---
+
+## Registro del uso de Inteligencia Artificial
+El detalle de las consultas realizadas a herramientas de IA está en el archivo
+[`prompts_ia.md`](prompts_ia.md).
