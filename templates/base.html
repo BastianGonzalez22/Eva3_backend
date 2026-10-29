@@ -44,6 +44,26 @@
             .sidebar.show { transform: translateX(0); }
             .main-wrapper { margin-left: 0; }
         }
+
+        /* --- CLASES DE TARJETAS Y KPI RECUPERADAS --- */
+        .card-pro { 
+            border: none; 
+            border-radius: 14px; 
+            box-shadow: 0 4px 16px rgba(0,0,0,0.05); 
+            background: #fff; 
+        }
+        .kpi-box { 
+            border: none; 
+            border-radius: 14px; 
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05); 
+            transition: transform 0.2s; 
+            text-decoration: none; 
+            color: inherit; 
+            display: block; 
+        }
+        .kpi-box:hover { 
+            transform: translateY(-3px); 
+        }
     </style>
 </head>
 <body>
@@ -115,7 +135,6 @@
     <div class="main-wrapper">
         <header class="topbar">
             <div class="d-flex align-items-center gap-3">
-                <!-- Botón hamburguesa visible solo en celulares y tablets -->
                 <button class="btn btn-outline-secondary d-lg-none px-2 py-1" type="button" onclick="toggleSidebar()">
                     <i class="bi bi-list fs-4"></i>
                 </button>
