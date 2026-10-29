@@ -1,7 +1,3 @@
----
-
-### 11. `prompts_ia.md`
-```markdown
 # Registro de Apoyo de Herramientas de Inteligencia Artificial (`prompts_ia.md`)
 
 * **Estudiante:** Bastián Marcelo González Moya
