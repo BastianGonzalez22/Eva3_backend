@@ -29,7 +29,6 @@
     </style>
 </head>
 <body>
-    <!-- Menú Lateral con Enlaces Condicionados a los Permisos del Rol -->
     <aside class="sidebar">
         <div class="sidebar-brand d-flex align-items-center">
             <i class="bi bi-heart-pulse-fill text-info fs-3 me-2"></i>
@@ -39,6 +38,7 @@
             </div>
         </div>
 
+        <!-- Menú lateral limpio (sin textos entre paréntesis) -->
         <nav class="nav flex-column nav-sidebar">
             <small class="text-uppercase text-white-50 px-3 mb-2" style="font-size: 0.7rem; letter-spacing: 1px;">Menú Principal</small>
             <a href="{% url 'inicio' %}" class="nav-link {% if menu == 'inicio' %}active{% endif %}">
@@ -46,12 +46,12 @@
             </a>
             {% if perms.clinica.view_tutor %}
             <a href="{% url 'tutores' %}" class="nav-link {% if menu == 'tutores' %}active{% endif %}">
-                <i class="bi bi-people-fill"></i> Tutores 
+                <i class="bi bi-people-fill"></i> Tutores
             </a>
             {% endif %}
             {% if perms.clinica.view_mascota %}
             <a href="{% url 'mascotas' %}" class="nav-link {% if menu == 'mascotas' %}active{% endif %}">
-                <i class="bi bi-hearts"></i> Mascotas 
+                <i class="bi bi-hearts"></i> Mascotas
             </a>
             {% endif %}
             {% if perms.clinica.view_veterinario %}
@@ -90,7 +90,6 @@
         </div>
     </aside>
 
-    <!-- Contenedor Principal -->
     <div class="main-wrapper">
         <header class="topbar">
             <h5 class="mb-0 fw-bold text-dark">{{ titulo }}</h5>
@@ -98,9 +97,7 @@
                 <span class="badge bg-info-subtle text-dark px-3 py-2 rounded-pill">
                     <i class="bi bi-person-check-fill me-1"></i>
                     Sesión: <strong>{{ request.user.first_name|default:request.user.username }}</strong>
-                    ({% if request.user.is_superuser %}Administrador{% elif perms.clinica.view_fichaclinica %}Veterinario{% else %}Recepción{% endif %})
                 </span>
-                <!-- Formulario de Logout por POST con CSRF Token -->
                 <form method="POST" action="{% url 'logout' %}" class="m-0">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold">
