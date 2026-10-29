@@ -47,8 +47,10 @@
             const mes = String(hoy.getMonth() + 1).padStart(2, '0');
             const dia = String(hoy.getDate()).padStart(2, '0');
             const fechaHoyStr = `${anio}-${mes}-${dia}`;
-            fechaInput.max = fechaHoyStr;
-            fechaInput.value = fechaHoyStr; // Deja por defecto la fecha de hoy
+            
+            // Establece el mínimo como hoy para bloquear solo el pasado, permitiendo el futuro
+            fechaInput.min = fechaHoyStr;
+            fechaInput.value = fechaHoyStr;
         }
         cargarRecordatorios();
     });
@@ -80,13 +82,6 @@
     document.getElementById('formRecordatorio').addEventListener('submit', async (e) => {
         e.preventDefault();
         const fechaSeleccionada = document.getElementById('rec_fecha').value;
-        const hoyStr = new Date().toISOString().split('T')[0];
-
-        // Validación estricta en JavaScript por si el navegador deja pasar la fecha
-        if (fechaSeleccionada > hoyStr) {
-            mostrarAlerta('No se pueden programar recordatorios en fechas futuras.', 'danger');
-            return;
-        }
 
         try {
             await apiFetch('/api/recordatorios/', {
@@ -100,6 +95,8 @@
                 })
             });
             e.target.reset();
+            const hoy = new Date();
+            const hoyStr = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
             document.getElementById('rec_fecha').value = hoyStr;
             mostrarAlerta('Recordatorio programado.');
             cargarRecordatorios();
