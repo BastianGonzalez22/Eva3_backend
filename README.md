@@ -8,10 +8,10 @@
 ---
 
 ## Acceso en Vivo - Instancia AWS EC2
-> **IP Pública / DNS AWS EC2:** `http://52.91.93.29:8000`
-* **Aplicación Web Principal:** `http://52.91.93.29:8000`
-* **Panel Administrativo (Django Admin):** `http://52.91.93.29:8000/admin/`
-* **API REST (Django REST Framework):** `http://52.91.93.29:8000/api/`
+> **IP Pública / DNS AWS EC2:** `http://52.91.93.29`
+* **Aplicación Web Principal:** `http://52.91.93.29`
+* **Panel Administrativo (Django Admin):** `http://52.91.93.29/admin/`
+* **API REST (Django REST Framework):** `http://52.91.93.29/api/`
 
 ---
 
