@@ -46,12 +46,12 @@
             </a>
             {% if perms.clinica.view_tutor %}
             <a href="{% url 'tutores' %}" class="nav-link {% if menu == 'tutores' %}active{% endif %}">
-                <i class="bi bi-people-fill"></i> Tutores (Dueños)
+                <i class="bi bi-people-fill"></i> Tutores 
             </a>
             {% endif %}
             {% if perms.clinica.view_mascota %}
             <a href="{% url 'mascotas' %}" class="nav-link {% if menu == 'mascotas' %}active{% endif %}">
-                <i class="bi bi-hearts"></i> Mascotas (Pacientes)
+                <i class="bi bi-hearts"></i> Mascotas 
             </a>
             {% endif %}
             {% if perms.clinica.view_veterinario %}
