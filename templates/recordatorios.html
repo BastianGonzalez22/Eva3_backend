@@ -39,6 +39,15 @@
 
 {% block scripts %}
 <script>
+    // Restringe el input de fecha para que no permita marcar más allá del día de hoy
+    document.addEventListener('DOMContentLoaded', () => {
+        const fechaInput = document.getElementById('rec_fecha');
+        if (fechaInput) {
+            fechaInput.max = new Date().toISOString().split('T')[0];
+        }
+        cargarRecordatorios();
+    });
+
     async function cargarRecordatorios() {
         const [recordatorios, mascotas] = await Promise.all([apiFetch('/api/recordatorios/'), apiFetch('/api/mascotas/')]);
         document.getElementById('rec_mascota').innerHTML = mascotas.map(m => `<option value="${m.id}">${m.nombre} (Tutor: ${m.tutor_nombre})</option>`).join('');
@@ -77,6 +86,8 @@
                 })
             });
             e.target.reset();
+            // Volver a aplicar el max después de resetear
+            document.getElementById('rec_fecha').max = new Date().toISOString().split('T')[0];
             mostrarAlerta('Recordatorio programado.');
             cargarRecordatorios();
         } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
@@ -94,7 +105,5 @@
         mostrarAlerta('Recordatorio eliminado.', 'warning');
         cargarRecordatorios();
     }
-
-    document.addEventListener('DOMContentLoaded', cargarRecordatorios);
 </script>
 {% endblock %}
