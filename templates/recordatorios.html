@@ -39,7 +39,6 @@
 
 {% block scripts %}
 <script>
-    // Restringe el input de fecha al día de hoy exacto (zona horaria local)
     document.addEventListener('DOMContentLoaded', () => {
         const fechaInput = document.getElementById('rec_fecha');
         if (fechaInput) {
@@ -47,7 +46,9 @@
             const anio = hoy.getFullYear();
             const mes = String(hoy.getMonth() + 1).padStart(2, '0');
             const dia = String(hoy.getDate()).padStart(2, '0');
-            fechaInput.max = `${anio}-${mes}-${dia}`;
+            const fechaHoyStr = `${anio}-${mes}-${dia}`;
+            fechaInput.max = fechaHoyStr;
+            fechaInput.value = fechaHoyStr; // Deja por defecto la fecha de hoy
         }
         cargarRecordatorios();
     });
@@ -78,6 +79,15 @@
 
     document.getElementById('formRecordatorio').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const fechaSeleccionada = document.getElementById('rec_fecha').value;
+        const hoyStr = new Date().toISOString().split('T')[0];
+
+        // Validación estricta en JavaScript por si el navegador deja pasar la fecha
+        if (fechaSeleccionada > hoyStr) {
+            mostrarAlerta('No se pueden programar recordatorios en fechas futuras.', 'danger');
+            return;
+        }
+
         try {
             await apiFetch('/api/recordatorios/', {
                 method: 'POST',
@@ -85,13 +95,12 @@
                     mascota: document.getElementById('rec_mascota').value,
                     tipo: document.getElementById('rec_tipo').value,
                     descripcion: document.getElementById('rec_descripcion').value,
-                    fecha_programada: document.getElementById('rec_fecha').value,
+                    fecha_programada: fechaSeleccionada,
                     estado: 'PENDIENTE'
                 })
             });
             e.target.reset();
-            const hoy = new Date();
-            document.getElementById('rec_fecha').max = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+            document.getElementById('rec_fecha').value = hoyStr;
             mostrarAlerta('Recordatorio programado.');
             cargarRecordatorios();
         } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
