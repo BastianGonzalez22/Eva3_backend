@@ -46,3 +46,8 @@
 * **Consulta realizada:** *"Revisa todo mi proyecto en base a las bases y la rúbrica de la EVA 3 y dime qué cumplo al 100%."*
 * **Apoyo recibido:** Revisión del código completo y ejecución de pruebas locales (validación de RUT, anti-solapamiento de citas, cierre de cita y recordatorio automático desde la ficha, permisos por rol en la API y acceso a todas las páginas y al Django Admin). Además detectó que, al ajustar el menú responsivo de `base.html`, se habían eliminado las clases CSS `.card-pro` y `.kpi-box`, que se siguen usando en varias plantillas.
 * **Qué verifiqué yo:** Restauré las reglas CSS `.card-pro`, `.kpi-box` y `.kpi-box:hover` en `base.html`.
+
+## 8. Corrección de errores 500 y mejoras de interfaz (Claude)
+* **Consulta realizada:** *"Revisa mi proyecto contra la rúbrica y arregla los errores; muestra los errores de la API sin formato JSON y los RUT con puntos."*
+* **Apoyo recibido:** Detección de dos errores 500 (RUT duplicado en otro formato desde la API y cita sin veterinario en el Admin). Se sugirió un mixin `ErroresModeloMixin` en `views.py`, el uso de `veterinario_id` en `CitaMedica.clean()`, la limpieza de mensajes en `apiFetch` (`base.html`) y la función `formatearRut`. También ayudó a diagnosticar el error `No module named 'drf_yasg'` en el servidor.
+* **Qué verifiqué yo:** Probé el RUT repetido en el sitio y vi el mensaje "Ya existe Tutor con este RUT.". Comprobé los RUT con puntos en las tablas y agregué `drf-yasg==1.21.18` a `requirements.txt` tras instalarlo en el servidor.
