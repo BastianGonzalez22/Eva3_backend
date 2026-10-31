@@ -66,7 +66,17 @@
             e.target.reset();
             mostrarAlerta('Profesional incorporado.');
             cargarVeterinarios();
-        } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
+        } catch (err) { 
+            let mensaje = err.message;
+            try {
+                const jsonErr = JSON.parse(err.message);
+                const primeraKey = Object.keys(jsonErr)[0];
+                if (primeraKey && Array.isArray(jsonErr[primeraKey])) {
+                    mensaje = jsonErr[primeraKey][0];
+                }
+            } catch (e) {}
+            mostrarAlerta(mensaje, 'danger'); 
+        }
     });
 
     async function toggleVet(id, activo) {

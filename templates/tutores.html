@@ -8,13 +8,11 @@
                 <input type="text" id="buscarTutor" class="form-control" placeholder="Buscar tutor por RUT, nombre o correo..." oninput="renderizarTutores()">
             </div>
         </div>
-        {% if perms.clinica.add_tutor %}
         <div class="col-md-auto">
             <button class="btn btn-success fw-semibold" onclick="abrirModalTutor()">
                 <i class="bi bi-person-plus-fill me-1"></i> Nuevo Tutor
             </button>
         </div>
-        {% endif %}
     </div>
 
     <div class="table-responsive">
@@ -27,6 +25,7 @@
     </div>
 </div>
 
+<!-- Modal Crear/Editar Tutor -->
 <div class="modal fade" id="modalTutor" tabindex="-1">
     <div class="modal-dialog">
         <form class="modal-content" id="formTutorModal">
@@ -36,11 +35,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="tutor_id">
-                <div class="mb-2">
-                    <label class="small fw-semibold">RUT Chileno (Validador Módulo 11)</label>
-                    <input type="text" id="tutor_rut" class="form-control" placeholder="Ej: 11111111-1 o 18967143-0" required>
-                    <div class="form-text small">Ejemplos válidos: <code>11111111-1</code>, <code>22222222-2</code>, <code>18967143-0</code></div>
-                </div>
+                <div class="mb-2"><label class="small fw-semibold">RUT Chileno</label><input type="text" id="tutor_rut" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Nombre Completo</label><input type="text" id="tutor_nombre" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Teléfono</label><input type="text" id="tutor_telefono" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Correo Electrónico</label><input type="email" id="tutor_email" class="form-control" required></div>
@@ -57,8 +52,6 @@
 
 {% block scripts %}
 <script>
-    const PUEDE_EDITAR = {{ perms.clinica.change_tutor|yesno:"true,false" }};
-    const PUEDE_BORRAR = {{ perms.clinica.delete_tutor|yesno:"true,false" }};
     let tutores = [];
     const modalTutorBS = new bootstrap.Modal(document.getElementById('modalTutor'));
 
@@ -79,8 +72,8 @@
                 <td>${t.direccion}</td>
                 <td><span class="badge bg-info-subtle text-dark">${t.total_mascotas} paciente(s)</span></td>
                 <td class="text-end">
-                    ${PUEDE_EDITAR ? `<button class="btn btn-sm btn-outline-primary me-1" onclick="editarTutor(${t.id})"><i class="bi bi-pencil-square"></i></button>` : ''}
-                    ${PUEDE_BORRAR ? `<button class="btn btn-sm btn-outline-danger" onclick="eliminarTutor(${t.id})"><i class="bi bi-trash"></i></button>` : ''}
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarTutor(${t.id})"><i class="bi bi-pencil-square"></i></button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="eliminarTutor(${t.id})"><i class="bi bi-trash"></i></button>
                 </td>
             </tr>`).join('');
     }
@@ -125,7 +118,7 @@
             }
             modalTutorBS.hide();
             cargarTutores();
-        } catch (err) { mostrarAlerta('Error de Validación: ' + err.message, 'danger'); }
+        } catch (err) { mostrarAlerta('Error: ' + err.message, 'danger'); }
     });
 
     async function eliminarTutor(id) {

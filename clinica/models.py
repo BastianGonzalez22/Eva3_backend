@@ -26,7 +26,7 @@ def validar_rut_chileno(valor):
     dv_esperado = '0' if resto == 11 else ('K' if resto == 10 else str(resto))
 
     if dv_ingresado != dv_esperado:
-        raise ValidationError(f"RUT inválido según Módulo 11 (el dígito verificador correcto es -{dv_esperado}).")
+        raise ValidationError(f"RUT inválido (el dígito verificador correcto es -{dv_esperado}).")
 
 def formatear_rut(valor):
     limpio = re.sub(r'[^0-9kK]', '', str(valor)).upper()

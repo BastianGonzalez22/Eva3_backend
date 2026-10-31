@@ -192,25 +192,12 @@
             setTimeout(() => { div.innerHTML = ''; }, 5500);
         }
 
-async function apiFetch(url, options = {}) {
+        async function apiFetch(url, options = {}) {
             options.headers = { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken'), ...(options.headers || {}) };
             const res = await fetch(url, options);
             if (res.status === 204) return null;
             const data = await res.json();
-            if (!res.ok) {
-                // Extraer el mensaje de error limpio de DRF evitando el JSON crudo
-                let mensaje = "Ocurrió un error en la solicitud";
-                if (typeof data === 'object' && data !== null) {
-                    const primerClave = Object.keys(data)[0];
-                    if (primerClave) {
-                        const errorDetalle = data[primerClave];
-                        mensaje = Array.isArray(errorDetalle) ? errorDetalle[0] : errorDetalle;
-                    }
-                } else if (typeof data === 'string') {
-                    mensaje = data;
-                }
-                throw new Error(mensaje);
-            }
+            if (!res.ok) throw new Error(JSON.stringify(data));
             return data;
         }
     </script>
