@@ -10,7 +10,7 @@ def validar_rut_chileno(valor):
         raise ValidationError("El RUT es obligatorio.")
     limpio = re.sub(r'[^0-9kK]', '', str(valor)).upper()
     if len(limpio) < 8 or len(limpio) > 9:
-        raise ValidationError("El RUT debe contener entre 7 y 8 dígitos más su dígito verificador.")
+        raise ValidationError("El RUT ingresado no es válido.")
     
     cuerpo, dv_ingresado = limpio[:-1], limpio[-1]
     if not cuerpo.isdigit():
