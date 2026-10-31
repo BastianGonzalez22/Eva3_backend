@@ -140,12 +140,14 @@ class CitaMedica(models.Model):
         ordering = ['-fecha', 'bloque_horario']
 
     def clean(self):
-        if self.veterinario and not self.veterinario.activo:
+        if not self.veterinario_id:
+            return
+        if not self.veterinario.activo:
             raise ValidationError("El profesional seleccionado no se encuentra activo para agendar citas.")
-        
+
         if self.estado != 'CANCELADA':
             solapamiento = CitaMedica.objects.filter(
-                veterinario=self.veterinario,
+                veterinario_id=self.veterinario_id,
                 fecha=self.fecha,
                 bloque_horario=self.bloque_horario
             ).exclude(estado='CANCELADA').exclude(pk=self.pk)

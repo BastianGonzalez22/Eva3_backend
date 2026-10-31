@@ -5,6 +5,8 @@ from django.views.decorators.http import require_POST
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from .models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo
 from .serializers import (
     TutorSerializer, MascotaSerializer, VeterinarioSerializer,
@@ -73,26 +75,32 @@ def recordatorios_view(request):
 
 
 # --- VIEWSETS DE LA API REST CON PERMISOS DE MODELO POR ROL ---
+class ErroresModeloMixin:
+    def handle_exception(self, exc):
+        if isinstance(exc, DjangoValidationError):
+            detalle = exc.message_dict if hasattr(exc, 'error_dict') else exc.messages
+            exc = DRFValidationError(detalle)
+        return super().handle_exception(exc)
 
-class TutorViewSet(viewsets.ModelViewSet):
+class TutorViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = Tutor.objects.all()
     serializer_class = TutorSerializer
     permission_classes = [StrictDjangoModelPermissions]
 
 
-class MascotaViewSet(viewsets.ModelViewSet):
+class MascotaViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = Mascota.objects.select_related('tutor').all()
     serializer_class = MascotaSerializer
     permission_classes = [StrictDjangoModelPermissions]
 
 
-class VeterinarioViewSet(viewsets.ModelViewSet):
+class VeterinarioViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = Veterinario.objects.all()
     serializer_class = VeterinarioSerializer
     permission_classes = [StrictDjangoModelPermissions]
 
 
-class CitaMedicaViewSet(viewsets.ModelViewSet):
+class CitaMedicaViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = CitaMedica.objects.select_related('mascota', 'mascota__tutor', 'veterinario').all()
     serializer_class = CitaMedicaSerializer
     permission_classes = [StrictDjangoModelPermissions]
@@ -116,13 +124,13 @@ class CitaMedicaViewSet(viewsets.ModelViewSet):
         return Response(bloques)
 
 
-class FichaClinicaViewSet(viewsets.ModelViewSet):
+class FichaClinicaViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = FichaClinica.objects.select_related('mascota', 'mascota__tutor', 'veterinario').all()
     serializer_class = FichaClinicaSerializer
     permission_classes = [StrictDjangoModelPermissions]
 
 
-class RecordatorioPreventivoViewSet(viewsets.ModelViewSet):
+class RecordatorioPreventivoViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
     queryset = RecordatorioPreventivo.objects.select_related('mascota', 'mascota__tutor').all()
     serializer_class = RecordatorioPreventivoSerializer
     permission_classes = [StrictDjangoModelPermissions]

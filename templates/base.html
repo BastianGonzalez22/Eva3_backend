@@ -197,7 +197,18 @@
             const res = await fetch(url, options);
             if (res.status === 204) return null;
             const data = await res.json();
-            if (!res.ok) throw new Error(JSON.stringify(data));
+            if (!res.ok) {
+                let mensaje = "Ocurrió un error en la solicitud";
+                if (Array.isArray(data)) {
+                    mensaje = data[0];
+                } else if (typeof data === 'object' && data !== null) {
+                    const primero = Object.values(data)[0];
+                    mensaje = Array.isArray(primero) ? primero[0] : primero;
+                } else if (typeof data === 'string') {
+                    mensaje = data;
+                }
+                throw new Error(mensaje);
+            }
             return data;
         }
     </script>
