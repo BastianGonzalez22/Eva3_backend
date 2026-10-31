@@ -3,14 +3,16 @@
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="card card-pro p-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-person-badge-fill text-primary me-2"></i>Incorporar Profesional</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-person-badge-fill text-primary me-2"></i><span id="tituloFormVet">Incorporar Profesional</span></h6>
             <form id="formVeterinario">
+                <input type="hidden" id="vet_id">
                 <div class="mb-2"><label class="small fw-semibold">RUT Profesional</label><input type="text" id="vet_rut" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Nombre Completo</label><input type="text" id="vet_nombre" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Especialidad Médica</label><input type="text" id="vet_especialidad" class="form-control" required></div>
                 <div class="mb-2"><label class="small fw-semibold">Correo Electrónico</label><input type="email" id="vet_email" class="form-control" required></div>
                 <div class="mb-3"><label class="small fw-semibold">Teléfono</label><input type="text" id="vet_telefono" class="form-control" required></div>
                 <button type="submit" class="btn btn-dark w-100 fw-semibold">Guardar Profesional</button>
+                <button type="button" id="btnCancelarVet" class="btn btn-outline-secondary w-100 fw-semibold mt-2 d-none" onclick="cancelarEdicionVet()">Cancelar edición</button>
             </form>
         </div>
     </div>
@@ -33,8 +35,11 @@
 
 {% block scripts %}
 <script>
+    let veterinarios = [];
+
     async function cargarVeterinarios() {
         const vets = await apiFetch('/api/veterinarios/');
+        veterinarios = vets;
         document.getElementById('tablaVeterinarios').innerHTML = vets.map(v => `
             <tr>
                 <td>${formatearRut(v.rut)}</td>
@@ -43,40 +48,57 @@
                 <td><small>${v.email}<br>${v.telefono}</small></td>
                 <td><span class="badge bg-${v.activo ? 'success' : 'danger'}">${v.activo ? 'Disponible' : 'Inactivo'}</span></td>
                 <td class="text-end">
+                    <button class="btn btn-sm btn-outline-primary me-1" onclick="editarVet(${v.id})" title="Editar"><i class="bi bi-pencil-square"></i></button>
                     <button class="btn btn-sm btn-outline-secondary me-1" onclick="toggleVet(${v.id}, ${!v.activo})" title="Cambiar Disponibilidad"><i class="bi bi-arrow-repeat"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="eliminarVet(${v.id})"><i class="bi bi-trash"></i></button>
                 </td>
             </tr>`).join('');
     }
 
+    function editarVet(id) {
+        const v = veterinarios.find(x => x.id === id);
+        if (!v) return;
+        document.getElementById('vet_id').value = v.id;
+        document.getElementById('vet_rut').value = v.rut;
+        document.getElementById('vet_nombre').value = v.nombre_completo;
+        document.getElementById('vet_especialidad').value = v.especialidad;
+        document.getElementById('vet_email').value = v.email;
+        document.getElementById('vet_telefono').value = v.telefono;
+        document.getElementById('tituloFormVet').innerText = 'Editar Profesional';
+        document.getElementById('btnCancelarVet').classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicionVet() {
+        document.getElementById('formVeterinario').reset();
+        document.getElementById('vet_id').value = '';
+        document.getElementById('tituloFormVet').innerText = 'Incorporar Profesional';
+        document.getElementById('btnCancelarVet').classList.add('d-none');
+    }
+
     document.getElementById('formVeterinario').addEventListener('submit', async (e) => {
         e.preventDefault();
+        const id = document.getElementById('vet_id').value;
+        const actual = id ? veterinarios.find(x => x.id === Number(id)) : null;
+        const payload = {
+            rut: document.getElementById('vet_rut').value,
+            nombre_completo: document.getElementById('vet_nombre').value,
+            especialidad: document.getElementById('vet_especialidad').value,
+            email: document.getElementById('vet_email').value,
+            telefono: document.getElementById('vet_telefono').value,
+            activo: actual ? actual.activo : true
+        };
         try {
-            await apiFetch('/api/veterinarios/', {
-                method: 'POST',
-                body: JSON.stringify({
-                    rut: document.getElementById('vet_rut').value,
-                    nombre_completo: document.getElementById('vet_nombre').value,
-                    especialidad: document.getElementById('vet_especialidad').value,
-                    email: document.getElementById('vet_email').value,
-                    telefono: document.getElementById('vet_telefono').value,
-                    activo: true
-                })
-            });
-            e.target.reset();
-            mostrarAlerta('Profesional incorporado.');
+            if (id) {
+                await apiFetch(`/api/veterinarios/${id}/`, { method: 'PUT', body: JSON.stringify(payload) });
+                mostrarAlerta('Profesional actualizado correctamente.');
+            } else {
+                await apiFetch('/api/veterinarios/', { method: 'POST', body: JSON.stringify(payload) });
+                mostrarAlerta('Profesional incorporado.');
+            }
+            cancelarEdicionVet();
             cargarVeterinarios();
-        } catch (err) { 
-            let mensaje = err.message;
-            try {
-                const jsonErr = JSON.parse(err.message);
-                const primeraKey = Object.keys(jsonErr)[0];
-                if (primeraKey && Array.isArray(jsonErr[primeraKey])) {
-                    mensaje = jsonErr[primeraKey][0];
-                }
-            } catch (e) {}
-            mostrarAlerta(mensaje, 'danger'); 
-        }
+        } catch (err) { mostrarAlerta(err.message, 'danger'); }
     });
 
     async function toggleVet(id, activo) {
