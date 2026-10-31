@@ -182,6 +182,13 @@
             return cookieValue;
         }
 
+            function formatearRut(rut) {
+                const limpio = String(rut).replace(/[^0-9kK]/g, '').toUpperCase();
+                if (limpio.length < 2) return rut;
+                const cuerpo = limpio.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+                return cuerpo + '-' + limpio.slice(-1);
+            }
+
         function mostrarAlerta(mensaje, tipo = 'success') {
             const div = document.getElementById('alertaGlobal');
             div.innerHTML = `

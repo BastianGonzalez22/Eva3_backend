@@ -65,7 +65,7 @@
         const filtrados = tutores.filter(t => t.nombre_completo.toLowerCase().includes(q) || t.rut.toLowerCase().includes(q) || t.email.toLowerCase().includes(q));
         document.getElementById('tablaTutores').innerHTML = filtrados.map(t => `
             <tr>
-                <td class="fw-semibold">${t.rut}</td>
+                <td class="fw-semibold">${formatearRut(t.rut)}</td>
                 <td class="fw-bold">${t.nombre_completo}</td>
                 <td>${t.telefono}</td>
                 <td>${t.email}</td>

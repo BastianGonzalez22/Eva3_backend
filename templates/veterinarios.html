@@ -37,7 +37,7 @@
         const vets = await apiFetch('/api/veterinarios/');
         document.getElementById('tablaVeterinarios').innerHTML = vets.map(v => `
             <tr>
-                <td>${v.rut}</td>
+                <td>${formatearRut(v.rut)}</td>
                 <td class="fw-bold">Dr(a). ${v.nombre_completo}</td>
                 <td><span class="badge bg-info text-dark">${v.especialidad}</span></td>
                 <td><small>${v.email}<br>${v.telefono}</small></td>

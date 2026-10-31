@@ -84,7 +84,7 @@
     async function cargarMascotas() {
         const [listaMascotas, listaTutores] = await Promise.all([apiFetch('/api/mascotas/'), apiFetch('/api/tutores/')]);
         mascotas = listaMascotas;
-        document.getElementById('mascota_tutor').innerHTML = listaTutores.map(t => `<option value="${t.id}">${t.nombre_completo} (${t.rut})</option>`).join('');
+        document.getElementById('mascota_tutor').innerHTML = listaTutores.map(t => `<option value="${t.id}">${t.nombre_completo} (${formatearRut(t.rut)})</option>`).join('');
         renderizarMascotas();
     }
 
@@ -99,7 +99,7 @@
                 <td>${m.sexo === 'M' ? 'Macho' : 'Hembra'}</td>
                 <td>${m.fecha_nacimiento}</td>
                 <td>${m.peso_kg} Kg</td>
-                <td>${m.tutor_nombre} <small class="text-muted">(${m.tutor_rut})</small></td>
+                <td>${m.tutor_nombre} <small class="text-muted">(${formatearRut(m.tutor_rut)})</small></td>
                 <td class="text-end">
                     <button class="btn btn-sm btn-outline-primary me-1" onclick="editarMascota(${m.id})"><i class="bi bi-pencil-square"></i></button>
                     <button class="btn btn-sm btn-outline-danger" onclick="eliminarMascota(${m.id})"><i class="bi bi-trash"></i></button>
