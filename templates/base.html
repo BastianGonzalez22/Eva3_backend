@@ -189,6 +189,12 @@
                 return cuerpo + '-' + limpio.slice(-1);
             }
 
+            function formatearFecha(iso) {
+                if (!iso) return '';
+                const [anio, mes, dia] = String(iso).slice(0, 10).split('-');
+                return `${dia}/${mes}/${anio}`;
+            }
+
         function mostrarAlerta(mensaje, tipo = 'success') {
             const div = document.getElementById('alertaGlobal');
             div.innerHTML = `

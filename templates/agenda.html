@@ -230,7 +230,7 @@
             const badge = c.estado === 'PROGRAMADA' ? 'primary' : (c.estado === 'COMPLETADA' ? 'success' : 'secondary');
             return `
             <tr>
-                <td class="fw-bold">${c.fecha} <span class="badge bg-dark">${c.bloque_horario}</span></td>
+                <td class="fw-bold">${formatearFecha(c.fecha)} <span class="badge bg-dark">${c.bloque_horario}</span></td>
                 <td><strong>${c.mascota_nombre}</strong><br><small class="text-muted">${c.tutor_nombre}</small></td>
                 <td>Dr(a). ${c.veterinario_nombre}</td>
                 <td>${c.motivo}</td>

@@ -97,7 +97,7 @@
                 <td class="fw-bold">${m.nombre}</td>
                 <td><span class="badge bg-secondary">${m.especie_display}</span> ${m.raza}</td>
                 <td>${m.sexo === 'M' ? 'Macho' : 'Hembra'}</td>
-                <td>${m.fecha_nacimiento}</td>
+                <td>${formatearFecha(m.fecha_nacimiento)}</td>
                 <td>${m.peso_kg} Kg</td>
                 <td>${m.tutor_nombre} <small class="text-muted">(${formatearRut(m.tutor_rut)})</small></td>
                 <td class="text-end">

@@ -62,7 +62,7 @@
         const colores = { 'ATRASADO': 'danger', 'PROXIMO': 'warning text-dark', 'AL_DIA': 'info text-dark', 'COMPLETADO': 'success' };
         document.getElementById('tablaRecordatorios').innerHTML = recordatorios.map(r => `
             <tr>
-                <td class="fw-bold">${r.fecha_programada}</td>
+                <td class="fw-bold">${formatearFecha(r.fecha_programada)}</td>
                 <td><span class="badge bg-${colores[r.nivel_alerta]}">${r.nivel_alerta}</span></td>
                 <td><strong>${r.mascota_nombre}</strong><br><small class="text-muted">${r.tutor_nombre} (${r.tutor_telefono})</small></td>
                 <td><span class="badge bg-secondary">${r.tipo_display}</span> ${r.descripcion}</td>
