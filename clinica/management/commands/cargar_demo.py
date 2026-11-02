@@ -2,8 +2,8 @@ from django.core.management.base import BaseCommand
 from django.core.management import call_command
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
-from datetime import date, timedelta
-from clinica.models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo
+from datetime import date, timedelta, time
+from clinica.models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo, HorarioProfesional
 
 class Command(BaseCommand):
     help = "Carga usuarios iniciales y datos demo con RUTs válidos Módulo 11."
@@ -33,9 +33,15 @@ class Command(BaseCommand):
 
         v1, _ = Veterinario.objects.get_or_create(rut='12345678-5', defaults={'nombre_completo': 'Camila Soto', 'especialidad': 'General', 'email': 'soto@petcare.cl', 'telefono': '+56955551111', 'activo': True})
         v2, _ = Veterinario.objects.get_or_create(rut='15432198-5', defaults={'nombre_completo': 'Javier Méndez', 'especialidad': 'Cirugía', 'email': 'mendez@petcare.cl', 'telefono': '+56955552222', 'activo': True})
+        for v in (v1, v2):
+            for dia in range(0, 6):  # lunes a sábado
+                HorarioProfesional.objects.get_or_create(
+                    veterinario=v, dia_semana=dia,
+                    defaults={'hora_inicio': time(9, 0), 'hora_fin': time(18, 0)})
 
         hoy = timezone.now().date()
-        CitaMedica.objects.get_or_create(veterinario=v1, fecha=hoy, bloque_horario='10:00', defaults={'mascota': m1, 'motivo': 'Control anual', 'estado': 'PROGRAMADA'})
+        dia_demo = hoy + timedelta(days=1) if hoy.weekday() == 6 else hoy
+        CitaMedica.objects.get_or_create(veterinario=v1, fecha=dia_demo, bloque_horario='10:00', defaults={'mascota': m1, 'motivo': 'Control anual', 'estado': 'PROGRAMADA'})
 
         if not FichaClinica.objects.filter(mascota=m2).exists():
             FichaClinica.objects.create(

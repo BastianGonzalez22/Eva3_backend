@@ -3,7 +3,7 @@
 <div class="row g-4">
     <div class="col-lg-5">
         <div class="card card-pro p-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-medical-fill text-primary me-2"></i>Emitir Nueva Ficha Clínica</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-medical-fill text-primary me-2"></i><span id="tituloFormFicha">Emitir Nueva Ficha Clínica</span></h6>
             <form id="formFicha">
                 <div class="row g-2 mb-2">
                     <div class="col-md-6"><label class="small fw-semibold">Paciente</label><select class="form-select" id="ficha_mascota" required></select></div>
@@ -20,7 +20,8 @@
                     <label class="form-check-label small fw-bold text-primary" for="ficha_auto_recordatorio">Agendar recordatorio automático en 30 días</label>
                 </div>
                 <input type="text" class="form-control mb-3" id="ficha_nombre_control" placeholder="Detalle del próximo control o vacuna">
-                <button type="submit" class="btn btn-primary w-100 fw-bold">Registrar Ficha Clínica</button>
+                <button type="submit" id="btnFicha" class="btn btn-primary w-100 fw-bold">Registrar Ficha Clínica</button>
+                <button type="button" id="btnCancelarFicha" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="cancelarEdicionFicha()">Cancelar edición</button>
             </form>
         </div>
     </div>
@@ -40,6 +41,7 @@
 {% block scripts %}
 <script>
     let fichas = [];
+    let editandoFichaId = null;
 
     async function cargarFichas() {
         const [listaFichas, listaMascotas, listaVets, listaCitas] = await Promise.all([
@@ -69,6 +71,7 @@
                     <h6 class="fw-bold mb-0 text-primary">Ficha #${f.id} - ${f.mascota_nombre} <small class="text-muted">(Tutor: ${f.tutor_nombre})</small></h6>
                     <div>
                         <span class="badge bg-dark me-2">${f.fecha_formateada} | Dr(a). ${f.veterinario_nombre || 'N/A'}</span>
+                        <button class="btn btn-sm btn-outline-primary py-0 px-2 me-1" onclick="editarFicha(${f.id})" title="Editar"><i class="bi bi-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger py-0 px-2" onclick="eliminarFicha(${f.id})"><i class="bi bi-trash"></i></button>
                     </div>
                 </div>
@@ -86,6 +89,23 @@
         e.preventDefault();
         const citaVal = document.getElementById('ficha_cita').value;
         try {
+            if (editandoFichaId) {
+                await apiFetch(`/api/fichas/${editandoFichaId}/`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        veterinario: document.getElementById('ficha_veterinario').value,
+                        anamnesis: document.getElementById('ficha_anamnesis').value,
+                        diagnostico: document.getElementById('ficha_diagnostico').value,
+                        tratamiento: document.getElementById('ficha_tratamiento').value,
+                        receta_medica: document.getElementById('ficha_receta').value,
+                        examenes_solicitados: document.getElementById('ficha_examenes').value
+                    })
+                });
+                cancelarEdicionFicha();
+                mostrarAlerta('Ficha clínica actualizada.');
+                cargarFichas();
+                return;
+            }
             await apiFetch('/api/fichas/', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -106,6 +126,34 @@
             cargarFichas();
         } catch (err) { mostrarAlerta(err.message, 'danger'); }
     });
+
+    function editarFicha(id) {
+        const f = fichas.find(x => x.id === id);
+        if (!f) return;
+        editandoFichaId = id;
+        document.getElementById('ficha_mascota').value = f.mascota;
+        document.getElementById('ficha_veterinario').value = f.veterinario || '';
+        document.getElementById('ficha_anamnesis').value = f.anamnesis;
+        document.getElementById('ficha_diagnostico').value = f.diagnostico;
+        document.getElementById('ficha_tratamiento').value = f.tratamiento;
+        document.getElementById('ficha_receta').value = f.receta_medica || '';
+        document.getElementById('ficha_examenes').value = f.examenes_solicitados || '';
+        // La mascota, la cita y el recordatorio automático no se modifican al editar
+        ['ficha_mascota', 'ficha_cita', 'ficha_auto_recordatorio', 'ficha_nombre_control'].forEach(i => document.getElementById(i).disabled = true);
+        document.getElementById('tituloFormFicha').innerText = `Editando Ficha #${id}`;
+        document.getElementById('btnFicha').innerText = 'Guardar Cambios';
+        document.getElementById('btnCancelarFicha').classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicionFicha() {
+        editandoFichaId = null;
+        document.getElementById('formFicha').reset();
+        ['ficha_mascota', 'ficha_cita', 'ficha_auto_recordatorio', 'ficha_nombre_control'].forEach(i => document.getElementById(i).disabled = false);
+        document.getElementById('tituloFormFicha').innerText = 'Emitir Nueva Ficha Clínica';
+        document.getElementById('btnFicha').innerText = 'Registrar Ficha Clínica';
+        document.getElementById('btnCancelarFicha').classList.add('d-none');
+    }
 
     async function eliminarFicha(id) {
         if (!confirm('¿Confirmas la eliminación de esta ficha clínica?')) return;

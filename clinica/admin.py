@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo
+from .models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo, HorarioProfesional
 
 # Criterio 2: Personalización de títulos del administrador de Django
 admin.site.site_header = "PetCare - Administración Clínica Veterinaria"
@@ -33,8 +33,19 @@ class MascotaAdmin(admin.ModelAdmin):
         return f"{obj.tutor.nombre_completo} ({obj.tutor.telefono})"
     tutor_info.short_description = "Tutor y Contacto"
 
+class HorarioInline(admin.TabularInline):
+    model = HorarioProfesional
+    extra = 1
+
+@admin.register(HorarioProfesional)
+class HorarioProfesionalAdmin(admin.ModelAdmin):
+    list_display = ('veterinario', 'dia_semana', 'hora_inicio', 'hora_fin')
+    list_filter = ('dia_semana', 'veterinario')
+    search_fields = ('veterinario__nombre_completo',)
+
 @admin.register(Veterinario)
 class VeterinarioAdmin(admin.ModelAdmin):
+    inlines = [HorarioInline]
     list_display = ('rut', 'nombre_completo', 'especialidad', 'email', 'telefono', 'estado_badge')
     list_filter = ('especialidad', 'activo')
     search_fields = ('rut', 'nombre_completo', 'especialidad')

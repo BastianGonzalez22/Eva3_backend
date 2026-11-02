@@ -21,6 +21,13 @@ class MascotaSerializer(serializers.ModelSerializer):
         model = Mascota
         fields = '__all__'
 
+    def validate(self, data):
+        instancia = Mascota(**data)
+        try:
+            instancia.clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError(e.message_dict if hasattr(e, 'error_dict') else e.messages)
+        return data
 
 # Serializador de Profesionales Veterinarios
 class VeterinarioSerializer(serializers.ModelSerializer):
@@ -62,6 +69,13 @@ class FichaClinicaSerializer(serializers.ModelSerializer):
         model = FichaClinica
         fields = '__all__'
 
+    def validate(self, data):
+        instancia = FichaClinica(**data)
+        try:
+            instancia.clean()
+        except DjangoValidationError as e:
+            raise serializers.ValidationError({'cita': e.messages})
+        return data
 
 # Serializador de Recordatorios Preventivos incluyendo el nivel de alerta calculado
 class RecordatorioPreventivoSerializer(serializers.ModelSerializer):

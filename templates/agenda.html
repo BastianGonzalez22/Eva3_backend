@@ -163,6 +163,21 @@
 
         contenedor.innerHTML = bloques.map(b => {
             const c = citasDelDia.find(x => x.bloque_horario === b.codigo);
+                        if (!c && !b.disponible) {
+                return `
+                <div class="col-md-3 col-sm-6">
+                    <div class="border border-2 rounded-3 p-3 h-100 bg-light d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="fw-bold text-muted"><i class="bi bi-clock me-1"></i>${b.etiqueta}</span>
+                                <span class="badge bg-secondary">NO ATIENDE</span>
+                            </div>
+                            <p class="small text-muted mb-3">Fuera del horario del profesional.</p>
+                        </div>
+                        <button class="btn btn-sm btn-secondary w-100" disabled>No disponible</button>
+                    </div>
+                </div>`;
+            }
             if (!c) {
                 return `
                 <div class="col-md-3 col-sm-6">
@@ -203,23 +218,36 @@
             }
         }).join('');
 
-        // Vista Semanal 7 días
+        // Vista Semanal 7 días (usa la disponibilidad real de la API: respeta el horario del profesional)
         const baseDate = new Date(fecha + 'T12:00:00');
-        let htmlSem = '';
+        const dias = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(baseDate);
             d.setDate(baseDate.getDate() + i);
-            const iso = d.toISOString().split('T')[0];
-            const nom = d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' });
+            dias.push({
+                iso: d.toISOString().split('T')[0],
+                nom: d.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' })
+            });
+        }
+        const dispoSemana = await Promise.all(
+            dias.map(d => apiFetch(`/api/citas/disponibilidad/?veterinario_id=${vetId}&fecha=${d.iso}`))
+        );
+        let htmlSem = '';
+        dias.forEach((d, i) => {
+            const iso = d.iso;
+            const nom = d.nom;
+            const libres = dispoSemana[i].filter(b => b.disponible).length;
             const ocup = citas.filter(c => String(c.veterinario) === String(vetId) && c.fecha === iso && c.estado !== 'CANCELADA').length;
-            const pct = Math.round((ocup / 7) * 100);
+            const total = libres + ocup;
+            const pct = total > 0 ? Math.round((ocup / total) * 100) : 0;
+            const detalle = total === 0 ? 'No atiende este día' : `${ocup} reservadas / ${libres} libres`;
             htmlSem += `
             <div class="p-2 border rounded-3 bg-light d-flex justify-content-between align-items-center" style="cursor:pointer;" onclick="document.getElementById('cal_fecha').value='${iso}'; actualizarCalendarioDinamico();">
-                <div><strong class="text-capitalize small">${nom}</strong><div class="text-muted" style="font-size:0.75rem;">${ocup} reservadas / ${7 - ocup} libres</div></div>
-                <div class="w-50"><div class="progress" style="height: 8px;"><div class="progress-bar bg-${ocup >= 7 ? 'danger' : (ocup >= 4 ? 'warning' : 'success')}" style="width: ${pct}%"></div></div></div>
+                <div><strong class="text-capitalize small">${nom}</strong><div class="text-muted" style="font-size:0.75rem;">${detalle}</div></div>
+                <div class="w-50"><div class="progress" style="height: 8px;"><div class="progress-bar bg-${total > 0 && libres === 0 ? 'danger' : (pct >= 57 ? 'warning' : 'success')}" style="width: ${pct}%"></div></div></div>
                 <span class="badge bg-${iso === fecha ? 'dark' : 'secondary'}">${iso === fecha ? 'Activo' : 'Ver'}</span>
             </div>`;
-        }
+        });
         document.getElementById('grillaSemanal').innerHTML = htmlSem;
     }
 

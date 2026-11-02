@@ -7,7 +7,8 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from .models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo
+from datetime import date as _date
+from .models import Tutor, Mascota, Veterinario, CitaMedica, FichaClinica, RecordatorioPreventivo, bloque_en_horario
 from .serializers import (
     TutorSerializer, MascotaSerializer, VeterinarioSerializer,
     CitaMedicaSerializer, FichaClinicaSerializer, RecordatorioPreventivoSerializer
@@ -117,8 +118,17 @@ class CitaMedicaViewSet(ErroresModeloMixin, viewsets.ModelViewSet):
             fecha=fecha
         ).exclude(estado='CANCELADA').values_list('bloque_horario', flat=True)
 
+        try:
+            dia = _date.fromisoformat(fecha)
+        except ValueError:
+            return Response({'error': 'Fecha inválida (use AAAA-MM-DD)'}, status=status.HTTP_400_BAD_REQUEST)
+
         bloques = [
-            {'codigo': codigo, 'etiqueta': etiqueta, 'disponible': codigo not in ocupados}
+            {
+                'codigo': codigo,
+                'etiqueta': etiqueta,
+                'disponible': codigo not in ocupados and bloque_en_horario(vet_id, dia, codigo),
+            }
             for codigo, etiqueta in CitaMedica.BLOQUES_HORARIOS
         ]
         return Response(bloques)

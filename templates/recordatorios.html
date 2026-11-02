@@ -3,7 +3,7 @@
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="card card-pro p-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-eyedropper text-warning me-2"></i>Programar Vacuna o Control</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-eyedropper text-warning me-2"></i><span id="tituloFormRec">Programar Vacuna o Control</span></h6>
             <form id="formRecordatorio">
                 <div class="mb-2"><label class="small fw-semibold">Paciente (Mascota)</label><select class="form-select" id="rec_mascota" required></select></div>
                 <div class="mb-2">
@@ -16,7 +16,8 @@
                 </div>
                 <div class="mb-2"><label class="small fw-semibold">Vacuna o Control</label><input type="text" class="form-control" id="rec_descripcion" required></div>
                 <div class="mb-3"><label class="small fw-semibold">Fecha Programada</label><input type="date" class="form-control" id="rec_fecha" required></div>
-                <button type="submit" class="btn btn-warning w-100 fw-bold">Programar Recordatorio</button>
+                <button type="submit" id="btnRec" class="btn btn-warning w-100 fw-bold">Programar Recordatorio</button>
+                <button type="button" id="btnCancelarRec" class="btn btn-outline-secondary w-100 mt-2 d-none" onclick="cancelarEdicionRec()">Cancelar edición</button>
             </form>
         </div>
     </div>
@@ -54,9 +55,12 @@
         }
         cargarRecordatorios();
     });
+    let recs = [];
+    let editandoRecId = null;
 
     async function cargarRecordatorios() {
         const [recordatorios, mascotas] = await Promise.all([apiFetch('/api/recordatorios/'), apiFetch('/api/mascotas/')]);
+        recs = recordatorios;
         document.getElementById('rec_mascota').innerHTML = mascotas.map(m => `<option value="${m.id}">${m.nombre} (Tutor: ${m.tutor_nombre})</option>`).join('');
 
         const colores = { 'ATRASADO': 'danger', 'PROXIMO': 'warning text-dark', 'AL_DIA': 'info text-dark', 'COMPLETADO': 'success' };
@@ -73,6 +77,7 @@
                         <button class="btn btn-sm btn-info text-white" onclick="estadoRec(${r.id}, 'NOTIFICADO')" title="Marcar Notificado"><i class="bi bi-envelope-check"></i></button>
                         <button class="btn btn-sm btn-success" onclick="estadoRec(${r.id}, 'REALIZADO')" title="Marcar Realizado"><i class="bi bi-check2-circle"></i></button>
                         ` : ''}
+                        <button class="btn btn-sm btn-outline-primary" onclick="editarRec(${r.id})" title="Editar"><i class="bi bi-pencil"></i></button>
                         <button class="btn btn-sm btn-outline-danger" onclick="eliminarRec(${r.id})" title="Eliminar"><i class="bi bi-trash"></i></button>
                     </div>
                 </td>
@@ -84,6 +89,21 @@
         const fechaSeleccionada = document.getElementById('rec_fecha').value;
 
         try {
+            if (editandoRecId) {
+                await apiFetch(`/api/recordatorios/${editandoRecId}/`, {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        mascota: document.getElementById('rec_mascota').value,
+                        tipo: document.getElementById('rec_tipo').value,
+                        descripcion: document.getElementById('rec_descripcion').value,
+                        fecha_programada: fechaSeleccionada
+                    })
+                });
+                cancelarEdicionRec();
+                mostrarAlerta('Recordatorio actualizado.');
+                cargarRecordatorios();
+                return;
+            }
             await apiFetch('/api/recordatorios/', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -102,6 +122,38 @@
             cargarRecordatorios();
         } catch (err) { mostrarAlerta(err.message, 'danger'); }
     });
+
+    function hoyISO() {
+        const h = new Date();
+        return `${h.getFullYear()}-${String(h.getMonth() + 1).padStart(2, '0')}-${String(h.getDate()).padStart(2, '0')}`;
+    }
+
+    function editarRec(id) {
+        const r = recs.find(x => x.id === id);
+        if (!r) return;
+        editandoRecId = id;
+        document.getElementById('rec_mascota').value = r.mascota;
+        document.getElementById('rec_tipo').value = r.tipo;
+        document.getElementById('rec_descripcion').value = r.descripcion;
+        const f = document.getElementById('rec_fecha');
+        f.removeAttribute('min');   // al editar se permite conservar una fecha ya vencida
+        f.value = r.fecha_programada;
+        document.getElementById('tituloFormRec').innerText = 'Editando Recordatorio';
+        document.getElementById('btnRec').innerText = 'Guardar Cambios';
+        document.getElementById('btnCancelarRec').classList.remove('d-none');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function cancelarEdicionRec() {
+        editandoRecId = null;
+        document.getElementById('formRecordatorio').reset();
+        const f = document.getElementById('rec_fecha');
+        f.min = hoyISO();
+        f.value = hoyISO();
+        document.getElementById('tituloFormRec').innerText = 'Programar Vacuna o Control';
+        document.getElementById('btnRec').innerText = 'Programar Recordatorio';
+        document.getElementById('btnCancelarRec').classList.add('d-none');
+    }
 
     async function estadoRec(id, estado) {
         await apiFetch(`/api/recordatorios/${id}/`, { method: 'PATCH', body: JSON.stringify({ estado }) });

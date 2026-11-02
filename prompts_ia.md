@@ -51,3 +51,24 @@
 * **Consulta realizada:** *"Revisa mi proyecto contra la rúbrica y arregla los errores; muestra los errores de la API sin formato JSON y los RUT con puntos."*
 * **Apoyo recibido:** Detección de dos errores 500 (RUT duplicado en otro formato desde la API y cita sin veterinario en el Admin). Se sugirió un mixin `ErroresModeloMixin` en `views.py`, el uso de `veterinario_id` en `CitaMedica.clean()`, la limpieza de mensajes en `apiFetch` (`base.html`) y la función `formatearRut`. También ayudó a diagnosticar el error `No module named 'drf_yasg'` en el servidor.
 * **Qué verifiqué yo:** Probé el RUT repetido en el sitio y vi el mensaje "Ya existe Tutor con este RUT.". Comprobé los RUT con puntos en las tablas y agregué `drf-yasg==1.21.18` a `requirements.txt` tras instalarlo en el servidor.
+
+---
+
+## 9. Revisión contra la rúbrica y validaciones de datos (Claude)
+* **Consulta realizada:** *"Revisa todo mi proyecto contra el enunciado y la rúbrica de la EVA 3 y dime qué falta para cumplir al 100%."*
+* **Apoyo recibido:** Revisión del repositorio levantándolo con PostgreSQL y probando migraciones, páginas por rol, API y Django Admin. Detectó que la API aceptaba mascotas con fecha de nacimiento futura o peso menor o igual a 0, citas en fechas pasadas y fichas clínicas asociadas a la cita de otra mascota. Propuso un método `clean()` en `Mascota` y `FichaClinica`, la regla de fecha pasada en `CitaMedica.clean()` y los `validate()` correspondientes en los serializadores.
+* **Qué verifiqué yo:** Probé en el sitio que se rechace una mascota con peso 0 o fecha futura, una cita con fecha de ayer y una ficha con la cita de otra mascota. Comprobé que seguir cerrando citas antiguas al emitir una ficha sigue funcionando.
+
+---
+
+## 10. Disponibilidad por profesional y regla de mascota sin doble cita (Claude)
+* **Consulta realizada:** *"Hay que cumplir la disponibilidad por profesional del enunciado; ayúdame a arreglarlo en pasos cortos. Además, ¿se puede agendar la misma mascota a la misma hora con distintos doctores?"*
+* **Apoyo recibido:** Nuevo modelo `HorarioProfesional` (día de la semana, hora de inicio y término) con su migración y una migración de datos que da un horario inicial a los veterinarios existentes. Función `bloque_en_horario()` usada en `CitaMedica.clean()` y en el endpoint `disponibilidad`, inline de horarios en el Django Admin, permisos de lectura en `crear_roles`, grilla de `agenda.html` con estado "No atiende" y panel semanal basado en la API. Además, una regla para impedir dos citas activas de la misma mascota en el mismo día y bloque, aunque sean con distintos veterinarios.
+* **Qué verifiqué yo:** Probé que un domingo todos los bloques salgan como no disponibles, que una cita fuera del horario sea rechazada, que el panel semanal indique "No atiende este día" y que el sistema rechace agendar a Bangi dos veces a la misma hora con distintos doctores.
+
+---
+
+## 11. Edición de fichas y recordatorios desde la interfaz web (Claude)
+* **Consulta realizada:** *"Agrega el botón de editar en fichas y en recordatorios para que el CRUD quede completo en la web."*
+* **Apoyo recibido:** Botón de edición en `fichas.html` y `recordatorios.html` que reutiliza el formulario existente y envía un `PATCH` a la API, con botón de cancelar edición. En fichas se bloquean la mascota y la cita al editar para no romper la integridad de los datos.
+* **Qué verifiqué yo:** Edité una ficha y un recordatorio desde la web, comprobé que los cambios se guardan y que después se pueden seguir creando registros nuevos sin errores.

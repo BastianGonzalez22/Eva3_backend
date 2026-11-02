@@ -7,7 +7,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         grupo_vet, _ = Group.objects.get_or_create(name='Veterinario')
         codigos_vet = [
-            'view_tutor', 'view_mascota', 'view_veterinario',
+            'view_tutor', 'view_mascota', 'view_veterinario', 'view_horarioprofesional',
             'view_citamedica', 'add_citamedica', 'change_citamedica',
             'view_fichaclinica', 'add_fichaclinica', 'change_fichaclinica',
             'view_recordatoriopreventivo', 'add_recordatoriopreventivo', 'change_recordatoriopreventivo',
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         codigos_rec = [
             'view_tutor', 'add_tutor', 'change_tutor', 'delete_tutor',
             'view_mascota', 'add_mascota', 'change_mascota', 'delete_mascota',
-            'view_veterinario',
+            'view_veterinario', 'view_horarioprofesional',
             'view_citamedica', 'add_citamedica', 'change_citamedica', 'delete_citamedica',
             'view_recordatoriopreventivo', 'add_recordatoriopreventivo', 'change_recordatoriopreventivo',
         ]
